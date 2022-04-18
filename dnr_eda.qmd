@@ -8,21 +8,29 @@ format:
 This is some plain text.
 
 ```{r}
-plot(1:10)
-```
-```{r}
 library(tidyverse)
 library(readxl)
 library(lubridate)
-```
+library(janitor)
 
+theme_set(theme_minimal())
+```
 
 ```{r}
 dnr.2018 <- read_xlsx("data/DNR_data/IowaDNR_2018_Data_Merged.xlsx") %>% 
   janitor::clean_names() %>%
-  filter(!is.na(collected_date))%>% 
+  filter(!is.na(collected_date)) %>% 
   mutate(hazard_class = if_else(
     microcystin_raw_value_ug_l > 8,
+    "hazardous",
+    "safe"
+  ))
+
+dnr.2019 <- read_xlsx("data/DNR_data/IowaDNR_2019_Data_Merged.xlsx", sheet = "combined") %>% 
+  clean_names() %>%
+  filter(!is.na(collected_date)) %>% 
+  mutate(hazard_class = if_else(
+    microcystin > 8,
     "hazardous",
     "safe"
   ))
@@ -30,6 +38,9 @@ dnr.2018 <- read_xlsx("data/DNR_data/IowaDNR_2018_Data_Merged.xlsx") %>%
 
 ```{r}
 dnr.2018 %>%
+  count(hazard_class)
+
+dnr.2019 %>%
   count(hazard_class)
 ```
 
@@ -51,31 +62,26 @@ dnr.2018 %>%
     panel.grid.minor = element_blank(),
     panel.grid.major.y = element_blank()
   )
+
+dnr.2019 %>%
+  filter(hazard_class != "safe") %>% 
+  count(environmental_location) %>%
+  mutate(environmental_location = 
+           fct_reorder(environmental_location, n)) %>%
+  ggplot(aes(n, environmental_location)) +
+  geom_col() +
+  labs(
+    y = "Lake",
+    x = "# Hazardous cases",
+    title = "Green Valley Beach is nasty"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_blank()
+  )
 ```
 
 
-```{r}
-dnr.2018 %>% 
-  mutate(hazard_class = if_else(
-    microcystin_raw_value_ug_l > 8,
-    "hazardous",
-    "safe"
-  )) %>% 
-  select(microcystin_raw_value_ug_l, hazard_class)
-```
 
-
-```{r}
-dnr.2018 %>%
-  mutate(collected_year = year(collected_date)) %>% 
-  select(collected_date, collected_year) %>%
-  count(collected_year)
-
-dnr.2018 %>%
-  count(year(collected_date))
-
-dnr.2018 %>%
-  filter(!is.na(collected_date)) %>%
-  count(year(collected_date))
-```
 
